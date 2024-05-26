@@ -1,5 +1,3 @@
-use game_engine;
-
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
@@ -53,5 +51,6 @@ fn main() {
 
 fn generate_card_command() {
     println!("Generating card!");
-    game_engine::card_game_function();
+    let card = game_engine::card::generate_card();
+    println!("{:?}", card);
 }

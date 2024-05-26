@@ -874,6 +874,9 @@ dependencies = [
 [[package]]
 name = "game_engine"
 version = "0.0.1"
+dependencies = [
+ "rand",
+]
 
 [[package]]
 name = "generic-array"
