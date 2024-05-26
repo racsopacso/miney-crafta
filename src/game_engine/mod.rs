@@ -1,2 +1,4 @@
 pub mod card;
-pub mod game_engine;
+pub mod game;
+pub mod lane;
+pub mod player;
