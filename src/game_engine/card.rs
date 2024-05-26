@@ -1,6 +1,6 @@
 use rand::prelude::*;
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Card {
     attack: u8,
     defense: u8,

@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use game_engine::game::Game;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -85,8 +86,39 @@ fn generate_card_command() {
 }
 
 fn play_game_command() {
-    let game = game_engine::game::Game::new();
+    let mut game = game_engine::game::Game::new();
     println!("{:?}", game);
+    loop {
+        play_game_stage(&mut game);
+    }
 }
 
-fn play_game_stage() {}
+fn play_game_stage(game: &mut Game) {
+    use std::io::stdin;
+    println!("game.stage: {:?}", game.stage);
+    match game.stage {
+        game_engine::game::Stage::StartTurn(which_player) => {
+            let card = game.start_turn(which_player);
+            println!("You get card {:?}", card)
+        }
+        game_engine::game::Stage::AssignLane(which_player, _) => {
+            let mut s = String::new();
+            // bhack: I feel like there must be a better way of writing "get a u8"
+            stdin().read_line(&mut s).expect("???");
+            println!("{}", s);
+            let lane_i = match s.trim().parse::<u8>() {
+                Ok(v) => {
+                    if v > 3 {
+                        panic!("go away!")
+                    };
+                    v
+                }
+                Err(_) => panic!("go away!"),
+            };
+            game.put_card_in_lane(which_player, lane_i);
+        }
+        game_engine::game::Stage::AssignDamage(_) => {
+            todo!()
+        }
+    }
+}
