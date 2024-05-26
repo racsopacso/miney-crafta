@@ -25,7 +25,7 @@ enum Stage {
 
 fn forward_stage(stage: Stage) -> Stage {
     match stage {
-        Stage::StartTurn(player) => Stage::AssignDamage(player),
+        Stage::StartTurn(player) => Stage::AssignLane(player),
         Stage::AssignLane(WhichPlayer::PlayerOne) => Stage::StartTurn(WhichPlayer::PlayerTwo),
         Stage::AssignLane(WhichPlayer::PlayerTwo) => Stage::AssignDamage(WhichPlayer::PlayerOne),
         Stage::AssignDamage(WhichPlayer::PlayerOne) => Stage::AssignDamage(WhichPlayer::PlayerTwo),
