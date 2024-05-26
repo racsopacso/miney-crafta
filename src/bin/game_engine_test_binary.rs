@@ -1,11 +1,11 @@
 use game_engine;
 
-use clap::{Args, Parser, Subcommand};
+use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 #[command(propagate_version = true)]
-struct Cli {
+struct Args_ {
     #[command(subcommand)]
     command: Commands,
 }
@@ -13,26 +13,45 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     /// Adds files to myapp
-    Card(Card::Args_),
+    Card(card::Args_),
 }
 
-mod Card {
-    use clap::Args;
+mod card {
+    use clap::{Args, Subcommand};
     #[derive(Args)]
     pub struct Args_ {
-        pub name: Option<String>,
+        #[command(subcommand)]
+        pub command: Commands,
+    }
+
+    #[derive(Subcommand)]
+    pub enum Commands {
+        // ???
+        Generate(generate::Args_),
+    }
+
+    pub mod generate {
+
+        use clap::Args;
+        #[derive(Args)]
+        pub struct Args_ {}
     }
 }
 
 fn main() {
-    let cli = Cli::parse();
+    let cli = Args_::parse();
 
-    // You can check for the existence of subcommands, and if found use their
-    // matches just as you would the top level cmd
     match &cli.command {
-        Commands::Card(name) => {
-            println!("'myapp add' was used, name is: {:?}", name.name)
+        Commands::Card(card::Args_ {
+            command: card::Commands::Generate(args),
+        }) => {
+            let _ = args;
+            generate_card_command();
         }
     }
+}
+
+fn generate_card_command() {
+    println!("Generating card!");
     game_engine::card_game_function();
 }
