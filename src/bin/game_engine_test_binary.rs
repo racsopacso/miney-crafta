@@ -12,6 +12,7 @@ struct Args_ {
 enum Commands {
     /// Adds files to myapp
     Card(card::Args_),
+    Game(game::Args_),
 }
 
 mod card {
@@ -36,6 +37,28 @@ mod card {
     }
 }
 
+pub mod game {
+    use clap::{Args, Subcommand};
+    #[derive(Args)]
+    pub struct Args_ {
+        #[command(subcommand)]
+        pub command: Commands,
+    }
+
+    #[derive(Subcommand)]
+    pub enum Commands {
+        // ???
+        Play(play::Args_),
+    }
+
+    pub mod play {
+
+        use clap::Args;
+        #[derive(Args)]
+        pub struct Args_ {}
+    }
+}
+
 fn main() {
     let cli = Args_::parse();
 
@@ -46,6 +69,12 @@ fn main() {
             let _ = args;
             generate_card_command();
         }
+        Commands::Game(game::Args_ {
+            command: game::Commands::Play(args),
+        }) => {
+            let _ = args;
+            play_game_command()
+        }
     }
 }
 
@@ -54,3 +83,10 @@ fn generate_card_command() {
     let card = game_engine::card::generate_card();
     println!("{:?}", card);
 }
+
+fn play_game_command() {
+    let game = game_engine::game::Game::new();
+    println!("{:?}", game);
+}
+
+fn play_game_stage() {}

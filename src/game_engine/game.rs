@@ -3,20 +3,19 @@ use crate::card::Card;
 use crate::lane::Lane;
 use crate::player::Player;
 
-struct Game {
-    lane_one: Lane,
-    lane_two: Lane,
-    lane_three: Lane,
+#[derive(Debug)]
+pub struct Game {
     players: [Player; 2],
     stage: Stage,
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(Eq, Debug, PartialEq)]
 pub enum WhichPlayer {
     PlayerOne,
     PlayerTwo,
 }
 
+#[derive(Debug)]
 enum Stage {
     StartTurn(WhichPlayer),
     AssignLane(WhichPlayer),
@@ -36,9 +35,6 @@ fn forward_stage(stage: Stage) -> Stage {
 impl Game {
     pub fn new() -> Self {
         return Game {
-            lane_one: Lane::new(),
-            lane_two: Lane::new(),
-            lane_three: Lane::new(),
             players: [
                 Player::new(WhichPlayer::PlayerOne),
                 Player::new(WhichPlayer::PlayerTwo),
