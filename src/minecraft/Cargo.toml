@@ -1,0 +1,11 @@
+[package]
+name = "minecraft"
+version = "0.0.1"
+edition = "2021"
+
+[lib]
+path = "minecraft.rs"
+
+[dependencies]
+valence = { git = "https://github.com/valence-rs/valence" }
+bevy_ecs = "0.12.1"
