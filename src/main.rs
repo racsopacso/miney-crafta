@@ -1,11 +1,40 @@
 use valence::prelude::*;
+use valence::interact_block::InteractBlockEvent;
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_systems(Startup, setup)
-        .add_systems(Update, (init_clients,))
+        .add_systems(
+            Update,
+            (
+                init_clients,
+                when_button_pressed_do,
+            ),
+        )
         .run();
+}
+
+const BUTTON_LOCATION: BlockPos = BlockPos::new(1, 66, 0);
+const TOGGLE_LOCATION: BlockPos = BlockPos::new(1, 64, 1);
+
+fn when_button_pressed_do(mut events: EventReader<InteractBlockEvent>, mut layers: Query<&mut ChunkLayer>){
+    for event in events.read(){
+        if event.position == BUTTON_LOCATION {
+            let mut layer = layers.single_mut();
+
+            let blockref = layer.block(TOGGLE_LOCATION);
+
+            let block_to_set = if blockref.is_some() && blockref.unwrap().state == BlockState::NETHERRACK{
+                BlockState::GLOWSTONE
+            } else {
+                BlockState::NETHERRACK
+            };
+
+            layer.set_block(TOGGLE_LOCATION, block_to_set);
+            
+        }
+    }
 }
 
 fn setup(
@@ -29,9 +58,11 @@ fn setup(
         }
     }
 
-    for y in 65..66 {
+    for y in 65..67 {
         layer.chunk.set_block([0, y, 0], BlockState::STONE);
     }
+
+    layer.chunk.set_block(BUTTON_LOCATION, BlockState::STONE_BUTTON.set(PropName::Facing, PropValue::East));
 
     commands.spawn(layer);
 }
