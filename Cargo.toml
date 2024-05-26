@@ -2,9 +2,14 @@
 name = "card_game"
 version = "0.1.0"
 edition = "2021"
+default-run = "card_game"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[[bin]]
+name="game_engine_test_binary"
 
 [dependencies]
 valence = { git = "https://github.com/valence-rs/valence" }
 bevy_ecs = "0.12.1"
+game_engine = { path="src/game_engine", version="0" }

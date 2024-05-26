@@ -4,12 +4,7 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_systems(Startup, setup)
-        .add_systems(
-            Update,
-            (
-                init_clients,
-            ),
-        )
+        .add_systems(Update, (init_clients,))
         .run();
 }
 
@@ -19,7 +14,8 @@ fn setup(
     biomes: Res<BiomeRegistry>,
     server: Res<Server>,
 ) {
-    let mut layer = LayerBundle::new(ident!("overworld"), &dimensions, &biomes, &server);
+    let mut layer: LayerBundle =
+        LayerBundle::new(ident!("overworld"), &dimensions, &biomes, &server);
 
     for z in -5..5 {
         for x in -5..5 {

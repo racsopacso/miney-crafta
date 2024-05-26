@@ -434,6 +434,7 @@ name = "card_game"
 version = "0.1.0"
 dependencies = [
  "bevy_ecs",
+ "game_engine",
  "valence",
 ]
 
@@ -773,6 +774,10 @@ dependencies = [
  "pin-project-lite",
  "pin-utils",
 ]
+
+[[package]]
+name = "game_engine"
+version = "0.0.1"
 
 [[package]]
 name = "generic-array"
