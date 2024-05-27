@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand};
+use clap::{ Parser, Subcommand };
 use game_engine::game::Game;
 
 #[derive(Parser)]
@@ -17,7 +17,7 @@ enum Commands {
 }
 
 mod card {
-    use clap::{Args, Subcommand};
+    use clap::{ Args, Subcommand };
     #[derive(Args)]
     pub struct Args_ {
         #[command(subcommand)]
@@ -31,7 +31,6 @@ mod card {
     }
 
     pub mod generate {
-
         use clap::Args;
         #[derive(Args)]
         pub struct Args_ {}
@@ -39,7 +38,7 @@ mod card {
 }
 
 pub mod game {
-    use clap::{Args, Subcommand};
+    use clap::{ Args, Subcommand };
     #[derive(Args)]
     pub struct Args_ {
         #[command(subcommand)]
@@ -53,7 +52,6 @@ pub mod game {
     }
 
     pub mod play {
-
         use clap::Args;
         #[derive(Args)]
         pub struct Args_ {}
@@ -64,15 +62,11 @@ fn main() {
     let cli = Args_::parse();
 
     match &cli.command {
-        Commands::Card(card::Args_ {
-            command: card::Commands::Generate(args),
-        }) => {
+        Commands::Card(card::Args_ { command: card::Commands::Generate(args) }) => {
             let _ = args;
             generate_card_command();
         }
-        Commands::Game(game::Args_ {
-            command: game::Commands::Play(args),
-        }) => {
+        Commands::Game(game::Args_ { command: game::Commands::Play(args) }) => {
             let _ = args;
             play_game_command()
         }
@@ -97,11 +91,11 @@ fn play_game_stage(game: &mut Game) {
     use std::io::stdin;
     println!("game.stage: {:?}", game.stage);
     match game.stage {
-        game_engine::game::Stage::StartTurn(which_player) => {
+        game_engine::game::Stage::StartTurn(which_player, _) => {
             let card = game.start_turn(which_player);
             println!("You get card {:?}", card)
         }
-        game_engine::game::Stage::AssignLane(which_player, _) => {
+        game_engine::game::Stage::AssignLane(which_player, _, _) => {
             let mut s = String::new();
             // bhack: I feel like there must be a better way of writing "get a u8"
             stdin().read_line(&mut s).expect("???");
@@ -109,16 +103,14 @@ fn play_game_stage(game: &mut Game) {
             let lane_i = match s.trim().parse::<u8>() {
                 Ok(v) => {
                     if v > 3 {
-                        panic!("go away!")
-                    };
+                        panic!("go away!");
+                    }
                     v
                 }
                 Err(_) => panic!("go away!"),
             };
             game.put_card_in_lane(which_player, lane_i);
         }
-        game_engine::game::Stage::AssignDamage(_) => {
-            todo!()
-        }
+        game_engine::game::Stage::AssignDamage(_) => { todo!() }
     }
 }
