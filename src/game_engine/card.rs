@@ -8,11 +8,18 @@ pub struct Card {
     pub defense: u8,
 }
 
+#[derive(Debug)]
 pub struct DeadCard {}
 pub type OkOrDead<T> = Result<T, DeadCard>;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Id(Uuid);
+impl From<&str> for Id {
+    fn from(s: &str) -> Id {
+        let s = Uuid::parse_str(s).unwrap();
+        Id(s)
+    }
+}
 
 pub fn generate_card() -> Card {
     let id = Id(Uuid::now_v7());
@@ -28,7 +35,7 @@ pub fn generate_card() -> Card {
 
 impl Card {
     pub fn damage(&mut self, amount: u8) -> OkOrDead<()> {
-        if amount > self.defense {
+        if amount >= self.defense {
             Err(DeadCard {})
         } else {
             self.defense -= amount;

@@ -14,6 +14,14 @@ pub enum WhichPlayer {
     PlayerOne,
     PlayerTwo,
 }
+use WhichPlayer::*;
+
+pub fn other_player(which_player: WhichPlayer) -> WhichPlayer {
+    match which_player {
+        PlayerOne => PlayerTwo,
+        PlayerTwo => PlayerOne,
+    }
+}
 
 #[derive(Clone, Debug)]
 pub enum Stage {
@@ -21,15 +29,13 @@ pub enum Stage {
     AssignLane(WhichPlayer, Card, Vec<u8>),
     AssignDamage(),
 }
+use Stage::*;
 
 pub struct AssignDamage {
-    to_player: WhichPlayer,
-    lane_i: u8,
-    card_id: card::Id,
+    pub to_player: WhichPlayer,
+    pub lane_i: u8,
+    pub card_id: card::Id,
 }
-
-use Stage::*;
-use WhichPlayer::*;
 
 impl Game {
     pub fn new() -> Self {
@@ -76,6 +82,7 @@ impl Game {
         self.stage = self.forward_stage(None, Some(lane_i));
     }
 
+    //bhack: make this simultaneous
     pub fn apply_damage(
         &mut self,
         which_player: WhichPlayer,
@@ -104,7 +111,7 @@ impl Game {
 
     // bhack: it isn't great that we're using options to cover up a bad function
     // signature
-    fn forward_stage(&mut self, card: Option<Card>, lane_i: Option<u8>) -> Stage {
+    pub fn forward_stage(&mut self, card: Option<Card>, lane_i: Option<u8>) -> Stage {
         match self.stage.clone() {
             StartTurn(player, lanes) => {
                 let card = card.unwrap();

@@ -1,4 +1,5 @@
 use clap::{ Parser, Subcommand };
+use game_engine::card::DeadCard;
 use game_engine::game::Game;
 
 #[derive(Parser)]
@@ -87,6 +88,7 @@ fn play_game_command() {
     }
 }
 
+use game_engine::game::AssignDamage;
 fn play_game_stage(game: &mut Game) {
     use std::io::stdin;
     println!("game.stage: {:#?}", game.stage);
@@ -113,16 +115,42 @@ fn play_game_stage(game: &mut Game) {
         }
         game_engine::game::Stage::AssignDamage() => {
             println!("game state: {:#?}", game);
-            loop {
+            'readloop: loop {
                 let mut s = String::new();
                 stdin().read_line(&mut s).expect("???");
-                let s: Vec<_> = s.split(" ").collect();
+                let s: Vec<_> = s.trim().split(" ").collect();
                 match s[..] {
-                    [] => panic!("insufficient commands"),
-                    ["q"] => {
-                        break;
+                    ["q"] | ["quit"] | ["exit"] => {
+                        game.stage = game.forward_stage(None, None);
+                        println!("breaking {:#?}", game.stage);
+                        break 'readloop;
                     }
-                    _ => println!("unrecongnised command"),
+                    | ["a", to_player, lane_i, card_id, amount]
+                    | ["assign", to_player, lane_i, card_id, amount]
+                    | ["attack", to_player, lane_i, card_id, amount] => {
+                        let to_player = match to_player {
+                            "0" => game_engine::game::WhichPlayer::PlayerOne,
+                            "1" => game_engine::game::WhichPlayer::PlayerTwo,
+                            _ => panic!("!"),
+                        };
+                        let lane_i = lane_i.parse::<u8>().unwrap();
+                        let amount = amount.parse::<u8>().unwrap();
+                        let card_id = card_id.into();
+                        let assigning_player = game_engine::game::other_player(to_player);
+                        match
+                            game
+                                .apply_damage(
+                                    assigning_player,
+                                    AssignDamage { to_player, lane_i, card_id },
+                                    amount
+                                )
+                                .unwrap()
+                        {
+                            Ok(()) => (),
+                            Err(DeadCard {}) => println!("Card ({:?}) killed!", card_id),
+                        }
+                    }
+                    _ => println!("unrecongnised command: {:#?}", s),
                 }
             }
         }
