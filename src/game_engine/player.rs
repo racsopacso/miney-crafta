@@ -2,6 +2,7 @@ use crate::{ card::Card, game, lane::Lane };
 
 #[derive(Debug)]
 pub struct Player {
+    #[allow(dead_code)]
     which: game::WhichPlayer,
     health: u8,
     lane_one: Lane,
@@ -15,6 +16,7 @@ pub enum OkOrDead {
 }
 
 impl Player {
+    #[must_use]
     pub fn new(which: game::WhichPlayer) -> Self {
         Self {
             which,

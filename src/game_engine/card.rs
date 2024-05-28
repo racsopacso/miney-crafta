@@ -1,3 +1,4 @@
+use anyhow::Error;
 use rand::prelude::*;
 use uuid::Uuid;
 
@@ -9,31 +10,34 @@ pub struct Card {
 }
 
 #[derive(Debug)]
+#[allow(clippy::module_name_repetitions)]
 pub struct DeadCard {}
 pub type OkOrDead<T> = Result<T, DeadCard>;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Id(Uuid);
-impl From<&str> for Id {
-    fn from(s: &str) -> Id {
-        let s = Uuid::parse_str(s).unwrap();
-        Id(s)
+impl TryFrom<&str> for Id {
+    type Error = Error;
+    fn try_from(s: &str) -> Result<Self, Error> {
+        let s = Uuid::parse_str(s)?;
+        Ok(Self(s))
     }
 }
 
-pub fn generate_card() -> Card {
+#[must_use]
+pub fn generate() -> Card {
     let id = Id(Uuid::now_v7());
     let attack = random::<u8>() % 5;
     let defense = random::<u8>() % 5;
-    let card = Card {
+    Card {
         id,
         attack,
         defense,
-    };
-    card
+    }
 }
 
 impl Card {
+    #[allow(clippy::missing_errors_doc)]
     pub fn damage(&mut self, amount: u8) -> OkOrDead<()> {
         if amount >= self.defense {
             Err(DeadCard {})

@@ -1,6 +1,6 @@
 use crate::card::{ Card, DeadCard };
 use crate::player::Player;
-use crate::{ card, lane };
+use crate::card;
 use anyhow::{ anyhow, Result };
 
 #[derive(Debug)]
@@ -14,9 +14,10 @@ pub enum WhichPlayer {
     PlayerOne,
     PlayerTwo,
 }
-use WhichPlayer::*;
+use WhichPlayer::{ PlayerOne, PlayerTwo };
 
-pub fn other_player(which_player: WhichPlayer) -> WhichPlayer {
+#[must_use]
+pub const fn other_player(which_player: WhichPlayer) -> WhichPlayer {
     match which_player {
         PlayerOne => PlayerTwo,
         PlayerTwo => PlayerOne,
@@ -29,20 +30,22 @@ pub enum Stage {
     AssignLane(WhichPlayer, Card, Vec<u8>),
     AssignDamage(),
 }
-use Stage::*;
+use Stage::{ AssignDamage, AssignLane, StartTurn };
 
-pub struct AssignDamage {
+#[derive(Clone, Copy, Eq, Debug, PartialEq)]
+pub struct AssignDamageSpec {
     pub to_player: WhichPlayer,
     pub lane_i: u8,
     pub card_id: card::Id,
 }
 
 impl Game {
+    #[must_use]
     pub fn new() -> Self {
-        return Game {
+        Self {
             players: [Player::new(PlayerOne), Player::new(PlayerTwo)],
             stage: StartTurn(PlayerOne, Vec::new()),
-        };
+        }
     }
 
     pub fn start_turn(&mut self, which_player: WhichPlayer) -> Card {
@@ -54,9 +57,9 @@ impl Game {
             }
             _ => panic!("oopsie"),
         }
-        let card = card::generate_card();
+        let card = card::generate();
         self.stage = self.forward_stage(Some(card), None);
-        return card.clone();
+        card
     }
 
     // bhack: I should be more consistent with the _mut naming convention
@@ -69,7 +72,7 @@ impl Game {
 
     pub fn put_card_in_lane(&mut self, which_player: WhichPlayer, lane_i: u8) {
         let card = match self.stage.clone() {
-            AssignLane(ref player, card, lanes) => {
+            AssignLane(ref player, card, _) => {
                 if *player != which_player {
                     panic!("oopsie");
                 }
@@ -86,11 +89,11 @@ impl Game {
     pub fn apply_damage(
         &mut self,
         which_player: WhichPlayer,
-        assign_spec: AssignDamage,
+        assign_spec: AssignDamageSpec,
         amount: u8
     ) -> Result<card::OkOrDead<()>> {
         let player_damaging = self.get_player(which_player);
-        let AssignDamage { to_player, lane_i, card_id } = assign_spec;
+        let AssignDamageSpec { to_player, lane_i, card_id } = assign_spec;
         let sending_lane = player_damaging.get_lane_by_index_mut(lane_i);
         if sending_lane.damage_to_deal < amount.into() {
             Err(anyhow!("dealing more damage than available!"))?;
@@ -128,7 +131,6 @@ impl Game {
                     .into_iter()
                     .filter(|i| !lanes_to_exclude.contains(i))
                     .collect();
-                println!("{:#?}", lanes_to_damage);
                 self.players.iter_mut().for_each(|player: &mut Player|
                     // bhack: we could invert these loops and clone less, but I'm going to be a maverick
                     // and waste a couple bytes of memory.
@@ -138,7 +140,7 @@ impl Game {
                             .into_iter()
                             .for_each(|lane_i| {
                                 let lane = player.get_lane_by_index_mut(lane_i);
-                                lane.init_damage_counter()
+                                lane.init_damage_counter();
                             });
                         lanes_to_exclude
                             .clone()
@@ -146,7 +148,7 @@ impl Game {
                             .for_each(|lane_i| {
                                 let lane = player.get_lane_by_index_mut(lane_i);
                                 lane.damage_to_deal = 0;
-                            })
+                            });
                     }
                 );
                 AssignDamage()

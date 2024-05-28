@@ -8,21 +8,24 @@ pub struct Lane {
 }
 
 impl Lane {
-    pub fn new() -> Self {
+    #[must_use]
+    pub const fn new() -> Self {
         Self {
             cards: Vec::new(),
             damage_to_deal: 0,
         }
     }
     pub fn add_to_lane(&mut self, card: Card) {
-        self.cards.push(card)
+        self.cards.push(card);
     }
+    #[must_use]
     pub fn total_damage(&self) -> u128 {
         self.cards
             .iter()
             .map(|card| Into::<u128>::into(card.attack))
             .sum()
     }
+    #[must_use]
     pub fn total_defense(&self) -> u128 {
         self.cards
             .iter()
@@ -37,6 +40,7 @@ impl Lane {
             .iter_mut()
             .filter(|card| card.id == id)
             .collect();
+        #[allow(clippy::option_if_let_else)]
         match TryInto::<[_; 1]>::try_into(matching_cards) {
             Ok(v) => Ok(v[0]),
             Err(_) => Err(anyhow!("Could not find card {:?}", id)),
@@ -49,5 +53,11 @@ impl Lane {
         } else {
             Err(anyhow!("No such card {:?}", id))
         }
+    }
+}
+
+impl Default for Lane {
+    fn default() -> Self {
+        Self::new()
     }
 }

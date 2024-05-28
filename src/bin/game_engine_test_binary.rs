@@ -76,7 +76,7 @@ fn main() {
 
 fn generate_card_command() {
     println!("Generating card!");
-    let card = game_engine::card::generate_card();
+    let card = game_engine::card::generate();
     println!("{:?}", card);
 }
 
@@ -88,7 +88,7 @@ fn play_game_command() {
     }
 }
 
-use game_engine::game::AssignDamage;
+use game_engine::game::AssignDamageSpec;
 fn play_game_stage(game: &mut Game) {
     use std::io::stdin;
     println!("game.stage: {:#?}", game.stage);
@@ -135,13 +135,13 @@ fn play_game_stage(game: &mut Game) {
                         };
                         let lane_i = lane_i.parse::<u8>().unwrap();
                         let amount = amount.parse::<u8>().unwrap();
-                        let card_id = card_id.into();
+                        let card_id = card_id.try_into().unwrap();
                         let assigning_player = game_engine::game::other_player(to_player);
                         match
                             game
                                 .apply_damage(
                                     assigning_player,
-                                    AssignDamage { to_player, lane_i, card_id },
+                                    AssignDamageSpec { to_player, lane_i, card_id },
                                     amount
                                 )
                                 .unwrap()
