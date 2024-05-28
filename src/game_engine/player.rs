@@ -1,4 +1,4 @@
-use crate::{card::Card, game, lane::Lane};
+use crate::{ card::Card, game, lane::Lane };
 
 #[derive(Debug)]
 pub struct Player {
@@ -30,6 +30,15 @@ impl Player {
             0 => Lane::add_to_lane(&mut self.lane_one, card),
             1 => Lane::add_to_lane(&mut self.lane_two, card),
             2 => Lane::add_to_lane(&mut self.lane_three, card),
+            _ => panic!("oopsie"),
+        }
+    }
+
+    pub fn get_lane_by_index_mut(&mut self, lane_i: u8) -> &mut Lane {
+        match lane_i {
+            0 => &mut self.lane_one,
+            1 => &mut self.lane_two,
+            2 => &mut self.lane_three,
             _ => panic!("oopsie"),
         }
     }

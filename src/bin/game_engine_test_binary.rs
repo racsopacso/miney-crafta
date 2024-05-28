@@ -89,7 +89,7 @@ fn play_game_command() {
 
 fn play_game_stage(game: &mut Game) {
     use std::io::stdin;
-    println!("game.stage: {:?}", game.stage);
+    println!("game.stage: {:#?}", game.stage);
     match game.stage {
         game_engine::game::Stage::StartTurn(which_player, _) => {
             let card = game.start_turn(which_player);
@@ -111,6 +111,9 @@ fn play_game_stage(game: &mut Game) {
             };
             game.put_card_in_lane(which_player, lane_i);
         }
-        game_engine::game::Stage::AssignDamage(_) => { todo!() }
+        game_engine::game::Stage::AssignDamage() => {
+            println!("game state: {:#?}", game);
+            todo!();
+        }
     }
 }
