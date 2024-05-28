@@ -113,7 +113,18 @@ fn play_game_stage(game: &mut Game) {
         }
         game_engine::game::Stage::AssignDamage() => {
             println!("game state: {:#?}", game);
-            todo!();
+            loop {
+                let mut s = String::new();
+                stdin().read_line(&mut s).expect("???");
+                let s: Vec<_> = s.split(" ").collect();
+                match s[..] {
+                    [] => panic!("insufficient commands"),
+                    ["q"] => {
+                        break;
+                    }
+                    _ => println!("unrecongnised command"),
+                }
+            }
         }
     }
 }
