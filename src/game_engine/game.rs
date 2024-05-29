@@ -16,6 +16,9 @@ pub mod players {
     #[derive(Clone, Debug)]
     pub struct PlayerTwo;
     impl i_am_player_witness::W for PlayerTwo {}
+
+    // bhack: it's kind of weird that we have PlayerOne, PlayerTwo both at compile time (types) and
+    // at run time (values).
     #[derive(Clone, Copy, Eq, Debug, PartialEq)]
     pub enum WhichPlayer {
         PlayerOne,
@@ -73,7 +76,7 @@ pub mod stages {
 #[derive(Debug)]
 pub struct Game<T: i_am_stage_witness::W> {
     players: [Player; 2],
-    phantom: T,
+    stage_data: T,
 }
 
 #[must_use]
@@ -95,13 +98,13 @@ pub struct AssignDamageSpec {
 pub fn new() -> Game<stages::StartTurn<players::PlayerOne>> {
     Game {
         players: [Player::new(PlayerOne), Player::new(PlayerTwo)],
-        phantom: stages::StartTurn(PlayerOne, Vec::new(), std::marker::PhantomData),
+        stage_data: stages::StartTurn(PlayerOne, Vec::new(), std::marker::PhantomData),
     }
 }
 
 impl<T> Game<T> where T: i_am_stage_witness::W + Clone {
     fn get_stage_data(&self) -> T {
-        self.phantom.clone()
+        self.stage_data.clone()
     }
 
     // bhack: I should be more consistent with the _mut naming convention
@@ -123,7 +126,7 @@ impl<T> Game<stages::StartTurn<T>> where T: i_am_player_witness::W + Clone {
         let stages::StartTurn(player, lanes, _) = self.get_stage_data();
         Game::<stages::AssignLane<T>> {
             players: self.players,
-            phantom: stages::AssignLane(player, card, lanes, std::marker::PhantomData),
+            stage_data: stages::AssignLane(player, card, lanes, std::marker::PhantomData),
         }
     }
 }
@@ -144,7 +147,7 @@ impl Game<stages::AssignLane<players::PlayerOne>> {
         lanes.push(lane_i);
         Game::<stages::StartTurn<players::PlayerTwo>> {
             players: self.players,
-            phantom: stages::StartTurn(PlayerTwo, lanes, std::marker::PhantomData),
+            stage_data: stages::StartTurn(PlayerTwo, lanes, std::marker::PhantomData),
         }
     }
 }
@@ -178,7 +181,7 @@ impl Game<stages::AssignLane<players::PlayerTwo>> {
         );
         Game::<stages::AssignDamage> {
             players: self.players,
-            phantom: stages::AssignDamage {},
+            stage_data: stages::AssignDamage {},
         }
     }
 }
@@ -214,7 +217,7 @@ impl Game<stages::AssignDamage> {
     pub fn forward_stage(self) -> Game<stages::StartTurn<players::PlayerOne>> {
         Game {
             players: self.players,
-            phantom: stages::StartTurn(PlayerOne, Vec::new(), std::marker::PhantomData),
+            stage_data: stages::StartTurn(PlayerOne, Vec::new(), std::marker::PhantomData),
         }
     }
 }
