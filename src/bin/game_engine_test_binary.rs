@@ -93,7 +93,6 @@ fn play_game_stage_start_turn_common<T>(
 ) -> game_engine::card::Card
     where T: game_engine::game::i_am_player_witness::W + Clone
 {
-    println!("game.stage: {:#?}", game.stage);
     let card = game.start_turn();
     println!("You get card {:?}", card);
     card
@@ -182,7 +181,7 @@ fn play_game_stage_apply_damage(mut game: Game<game_engine::game::stages::Assign
         let s: Vec<_> = s.trim().split(" ").collect();
         match s[..] {
             ["q"] | ["quit"] | ["exit"] => {
-                println!("breaking {:#?}", game.stage);
+                println!("breaking loop");
                 break 'readloop;
             }
             | ["a", to_player, lane_i, card_id, amount]

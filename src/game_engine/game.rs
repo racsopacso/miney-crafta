@@ -68,20 +68,11 @@ pub mod stages {
             self
         }
     }
-
-    #[derive(Clone, Debug)]
-    pub enum Stage {
-        StartTurn(WhichPlayer, Vec<u8>),
-        AssignLane(WhichPlayer, Card, Vec<u8>),
-        AssignDamage(),
-    }
 }
-use stages::{ Stage, Stage::{ AssignDamage, AssignLane, StartTurn } };
 
 #[derive(Debug)]
 pub struct Game<T: i_am_stage_witness::W> {
     players: [Player; 2],
-    pub stage: Stage,
     phantom: T,
 }
 
@@ -104,7 +95,6 @@ pub struct AssignDamageSpec {
 pub fn new() -> Game<stages::StartTurn<players::PlayerOne>> {
     Game {
         players: [Player::new(PlayerOne), Player::new(PlayerTwo)],
-        stage: StartTurn(PlayerOne, Vec::new()),
         phantom: stages::StartTurn(PlayerOne, Vec::new(), std::marker::PhantomData),
     }
 }
@@ -133,7 +123,6 @@ impl<T> Game<stages::StartTurn<T>> where T: i_am_player_witness::W + Clone {
         let stages::StartTurn(player, lanes, _) = self.get_stage_data();
         Game::<stages::AssignLane<T>> {
             players: self.players,
-            stage: self.stage,
             phantom: stages::AssignLane(player, card, lanes, std::marker::PhantomData),
         }
     }
@@ -153,10 +142,8 @@ impl Game<stages::AssignLane<players::PlayerOne>> {
         let mut lanes = lanes.clone();
         let lane_i = lane_i;
         lanes.push(lane_i);
-        self.stage = StartTurn(PlayerTwo, lanes.clone());
         Game::<stages::StartTurn<players::PlayerTwo>> {
             players: self.players,
-            stage: self.stage,
             phantom: stages::StartTurn(PlayerTwo, lanes, std::marker::PhantomData),
         }
     }
@@ -189,10 +176,8 @@ impl Game<stages::AssignLane<players::PlayerTwo>> {
                     });
             }
         );
-        self.stage = AssignDamage();
         Game::<stages::AssignDamage> {
             players: self.players,
-            stage: self.stage,
             phantom: stages::AssignDamage {},
         }
     }
@@ -229,7 +214,6 @@ impl Game<stages::AssignDamage> {
     pub fn forward_stage(self) -> Game<stages::StartTurn<players::PlayerOne>> {
         Game {
             players: self.players,
-            stage: StartTurn(PlayerOne, Vec::new()),
             phantom: stages::StartTurn(PlayerOne, Vec::new(), std::marker::PhantomData),
         }
     }
