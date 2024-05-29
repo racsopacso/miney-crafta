@@ -3,18 +3,87 @@ use crate::player::Player;
 use crate::card;
 use anyhow::{ anyhow, Result };
 
-#[derive(Debug)]
-pub struct Game {
-    players: [Player; 2],
-    pub stage: Stage,
+pub mod i_am_player_witness {
+    pub trait W {}
 }
 
-#[derive(Clone, Copy, Eq, Debug, PartialEq)]
-pub enum WhichPlayer {
-    PlayerOne,
-    PlayerTwo,
+pub mod players {
+    use super::i_am_player_witness;
+
+    #[derive(Clone, Debug)]
+    pub struct PlayerOne;
+    impl i_am_player_witness::W for PlayerOne {}
+    #[derive(Clone, Debug)]
+    pub struct PlayerTwo;
+    impl i_am_player_witness::W for PlayerTwo {}
+    #[derive(Clone, Copy, Eq, Debug, PartialEq)]
+    pub enum WhichPlayer {
+        PlayerOne,
+        PlayerTwo,
+    }
 }
-use WhichPlayer::{ PlayerOne, PlayerTwo };
+use players::{ WhichPlayer, WhichPlayer::{ PlayerOne, PlayerTwo } };
+
+mod i_am_stage_witness {
+    pub trait W {
+        type T: Clone;
+        fn get_stage_data(&self) -> &Self::T;
+    }
+}
+
+pub mod stages {
+    use std::marker::PhantomData;
+    use super::{ i_am_player_witness, players::WhichPlayer };
+    use crate::card::Card;
+    use super::i_am_stage_witness::W;
+
+    #[derive(Clone, Debug)]
+    pub struct StartTurn<T>(pub WhichPlayer, pub Vec<u8>, pub PhantomData<T>);
+    impl<T> W for StartTurn<T> where T: Clone {
+        type T = StartTurn<T>;
+        fn get_stage_data(&self) -> &Self::T {
+            self
+        }
+    }
+    #[derive(Clone, Debug)]
+    pub struct AssignLane<T: i_am_player_witness::W>(
+        pub WhichPlayer,
+        pub Card,
+        pub Vec<u8>,
+
+        pub PhantomData<T>,
+    );
+    impl<T> W for AssignLane<T> where T: i_am_player_witness::W + Clone {
+        type T = AssignLane<T>;
+        fn get_stage_data(&self) -> &Self::T {
+            self
+        }
+    }
+    #[derive(Clone, Debug)]
+    pub struct AssignDamage;
+    impl W for AssignDamage {
+        type T = AssignDamage;
+
+        fn get_stage_data(&self) -> &Self::T {
+            self
+        }
+    }
+
+    #[derive(Clone, Debug)]
+    pub enum Stage {
+        StartTurn(WhichPlayer, Vec<u8>),
+        AssignLane(WhichPlayer, Card, Vec<u8>),
+        AssignDamage(),
+    }
+}
+use stages::{ Stage, Stage::{ AssignDamage, AssignLane, StartTurn } };
+
+#[derive(Debug)]
+pub struct Game<T: i_am_stage_witness::W> {
+    players: [Player; 2],
+    pub stage: Stage,
+    phantom: T,
+}
 
 #[must_use]
 pub const fn other_player(which_player: WhichPlayer) -> WhichPlayer {
@@ -24,14 +93,6 @@ pub const fn other_player(which_player: WhichPlayer) -> WhichPlayer {
     }
 }
 
-#[derive(Clone, Debug)]
-pub enum Stage {
-    StartTurn(WhichPlayer, Vec<u8>),
-    AssignLane(WhichPlayer, Card, Vec<u8>),
-    AssignDamage(),
-}
-use Stage::{ AssignDamage, AssignLane, StartTurn };
-
 #[derive(Clone, Copy, Eq, Debug, PartialEq)]
 pub struct AssignDamageSpec {
     pub to_player: WhichPlayer,
@@ -39,27 +100,18 @@ pub struct AssignDamageSpec {
     pub card_id: card::Id,
 }
 
-impl Game {
-    #[must_use]
-    pub fn new() -> Self {
-        Self {
-            players: [Player::new(PlayerOne), Player::new(PlayerTwo)],
-            stage: StartTurn(PlayerOne, Vec::new()),
-        }
+#[must_use]
+pub fn new() -> Game<stages::StartTurn<players::PlayerOne>> {
+    Game {
+        players: [Player::new(PlayerOne), Player::new(PlayerTwo)],
+        stage: StartTurn(PlayerOne, Vec::new()),
+        phantom: stages::StartTurn(PlayerOne, Vec::new(), std::marker::PhantomData),
     }
+}
 
-    pub fn start_turn(&mut self, which_player: WhichPlayer) -> Card {
-        match self.stage {
-            StartTurn(ref player, _) => {
-                if *player != which_player {
-                    panic!("oopsie");
-                }
-            }
-            _ => panic!("oopsie"),
-        }
-        let card = card::generate();
-        self.stage = self.forward_stage(Some(card), None);
-        card
+impl<T> Game<T> where T: i_am_stage_witness::W + Clone {
+    fn get_stage_data(&self) -> T {
+        self.phantom.clone()
     }
 
     // bhack: I should be more consistent with the _mut naming convention
@@ -69,22 +121,84 @@ impl Game {
             PlayerTwo => &mut self.players[1],
         }
     }
+}
 
-    pub fn put_card_in_lane(&mut self, which_player: WhichPlayer, lane_i: u8) {
-        let card = match self.stage.clone() {
-            AssignLane(ref player, card, _) => {
-                if *player != which_player {
-                    panic!("oopsie");
-                }
-                card
-            }
-            _ => panic!("oopsie!"),
-        };
-        let player = self.get_player(which_player);
-        player.put_card_in_lane(lane_i, card);
-        self.stage = self.forward_stage(None, Some(lane_i));
+impl<T> Game<stages::StartTurn<T>> where T: i_am_player_witness::W + Clone {
+    pub fn start_turn(&mut self) -> Card {
+        let card = card::generate();
+        card
     }
 
+    pub fn forward_stage(self, card: Card) -> Game<stages::AssignLane<T>> {
+        let stages::StartTurn(player, lanes, _) = self.get_stage_data();
+        Game::<stages::AssignLane<T>> {
+            players: self.players,
+            stage: self.stage,
+            phantom: stages::AssignLane(player, card, lanes, std::marker::PhantomData),
+        }
+    }
+}
+
+impl<T> Game<stages::AssignLane<T>> where T: i_am_player_witness::W + Clone {
+    pub fn put_card_in_lane(&mut self, lane_i: u8) {
+        let stages::AssignLane(which_player, card, _, _) = self.get_stage_data();
+        let player = self.get_player(which_player);
+        player.put_card_in_lane(lane_i, card);
+    }
+}
+
+impl Game<stages::AssignLane<players::PlayerOne>> {
+    pub fn forward_stage(mut self, lane_i: u8) -> Game<stages::StartTurn<players::PlayerTwo>> {
+        let stages::AssignLane(which_player, card, lanes, _) = self.get_stage_data();
+        let mut lanes = lanes.clone();
+        let lane_i = lane_i;
+        lanes.push(lane_i);
+        self.stage = StartTurn(PlayerTwo, lanes.clone());
+        Game::<stages::StartTurn<players::PlayerTwo>> {
+            players: self.players,
+            stage: self.stage,
+            phantom: stages::StartTurn(PlayerTwo, lanes, std::marker::PhantomData),
+        }
+    }
+}
+impl Game<stages::AssignLane<players::PlayerTwo>> {
+    pub fn forward_stage(mut self, lane_i: u8) -> Game<stages::AssignDamage> {
+        let stages::AssignLane(_, _, lanes_to_exclude, _) = self.get_stage_data();
+        let all_lanes = vec![0, 1, 2];
+        let lanes_to_damage: Vec<_> = all_lanes
+            .into_iter()
+            .filter(|i| !lanes_to_exclude.contains(i))
+            .collect();
+        self.players.iter_mut().for_each(|player: &mut Player|
+            // bhack: we could invert these loops and clone less, but I'm going to be a maverick
+            // and waste a couple bytes of memory.
+            {
+                lanes_to_damage
+                    .clone()
+                    .into_iter()
+                    .for_each(|lane_i| {
+                        let lane = player.get_lane_by_index_mut(lane_i);
+                        lane.init_damage_counter();
+                    });
+                lanes_to_exclude
+                    .clone()
+                    .into_iter()
+                    .for_each(|lane_i| {
+                        let lane = player.get_lane_by_index_mut(lane_i);
+                        lane.damage_to_deal = 0;
+                    });
+            }
+        );
+        self.stage = AssignDamage();
+        Game::<stages::AssignDamage> {
+            players: self.players,
+            stage: self.stage,
+            phantom: stages::AssignDamage {},
+        }
+    }
+}
+
+impl Game<stages::AssignDamage> {
     //bhack: make this simultaneous
     pub fn apply_damage(
         &mut self,
@@ -112,54 +226,11 @@ impl Game {
         }
     }
 
-    // bhack: it isn't great that we're using options to cover up a bad function
-    // signature
-    pub fn forward_stage(&mut self, card: Option<Card>, lane_i: Option<u8>) -> Stage {
-        match self.stage.clone() {
-            StartTurn(player, lanes) => {
-                let card = card.unwrap();
-                AssignLane(player, card, lanes)
-            }
-            AssignLane(PlayerOne, _, mut lanes) => {
-                let lane_i = lane_i.unwrap();
-                lanes.push(lane_i);
-                StartTurn(PlayerTwo, lanes)
-            }
-            AssignLane(PlayerTwo, _, lanes_to_exclude) => {
-                let all_lanes = vec![0, 1, 2];
-                let lanes_to_damage: Vec<_> = all_lanes
-                    .into_iter()
-                    .filter(|i| !lanes_to_exclude.contains(i))
-                    .collect();
-                self.players.iter_mut().for_each(|player: &mut Player|
-                    // bhack: we could invert these loops and clone less, but I'm going to be a maverick
-                    // and waste a couple bytes of memory.
-                    {
-                        lanes_to_damage
-                            .clone()
-                            .into_iter()
-                            .for_each(|lane_i| {
-                                let lane = player.get_lane_by_index_mut(lane_i);
-                                lane.init_damage_counter();
-                            });
-                        lanes_to_exclude
-                            .clone()
-                            .into_iter()
-                            .for_each(|lane_i| {
-                                let lane = player.get_lane_by_index_mut(lane_i);
-                                lane.damage_to_deal = 0;
-                            });
-                    }
-                );
-                AssignDamage()
-            }
-            AssignDamage() => StartTurn(PlayerOne, Vec::new()),
+    pub fn forward_stage(self) -> Game<stages::StartTurn<players::PlayerOne>> {
+        Game {
+            players: self.players,
+            stage: StartTurn(PlayerOne, Vec::new()),
+            phantom: stages::StartTurn(PlayerOne, Vec::new(), std::marker::PhantomData),
         }
-    }
-}
-
-impl Default for Game {
-    fn default() -> Self {
-        Self::new()
     }
 }

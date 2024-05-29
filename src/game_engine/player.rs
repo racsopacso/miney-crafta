@@ -3,7 +3,7 @@ use crate::{ card::Card, game, lane::Lane };
 #[derive(Debug)]
 pub struct Player {
     #[allow(dead_code)]
-    which: game::WhichPlayer,
+    which: game::players::WhichPlayer,
     health: u8,
     lane_one: Lane,
     lane_two: Lane,
@@ -17,7 +17,7 @@ pub enum OkOrDead {
 
 impl Player {
     #[must_use]
-    pub fn new(which: game::WhichPlayer) -> Self {
+    pub fn new(which: game::players::WhichPlayer) -> Self {
         Self {
             which,
             health: 10,
